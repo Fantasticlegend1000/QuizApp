@@ -54,3 +54,5 @@ Thumbs.db
 
 # Claude / Cowork
 .claude/
+
+.vercel
