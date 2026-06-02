@@ -1,0 +1,138 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <link rel="stylesheet"
+          href=
+"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .input-icons i {
+            position: absolute;
+        }
+
+        .input-icons {
+            width: 100%;
+            margin-bottom: 70px;
+
+        }
+
+        .icon {
+            padding: 30px;
+            color: orange;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .input-field {
+            width: 150%;
+            padding: 10px;
+            text-align: center;
+            height:80px;
+            font-size:30px;
+            border: 1px solid orange;
+            border-radius: 20px;
+
+        }
+        .input-field:focus {
+            outline: none;
+            border: 1px solid orange;
+
+            border-radius: 20px;
+
+        }
+        .submitbutton{
+            position: relative;
+            width:500px;
+            height:100px;
+            font-size:30px;
+            color:white;
+            background-color: orange;
+            border-radius: 70px;
+            border: 1px solid orange;
+            left: 25%;
+
+        }
+        .submitbutton:hover{
+            position: relative;
+            width:500px;
+            height:100px;
+            font-size:30px;
+            color:white;
+            background-color: orange;
+            border-radius: 70px;
+            border: 5px solid #ff8324;
+            box-shadow:4px 9px 6px 0px rgba(255, 170, 56, 0.75);
+            left: 25%;
+
+        }
+        .submitbutton:focus{
+            outline:none;
+            position: relative;
+            width:500px;
+            height:100px;
+            font-size:30px;
+            color:white;
+            background-color: orange;
+            border-radius: 70px;
+            border: 5px solid #ff8324;
+            box-shadow:4px 9px 6px 0px rgba(255, 170, 56, 0.75);
+            left: 25%;
+
+        }
+
+    </style>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="{% static 'assets/main.css' %}">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+<script src="{% static 'assets/logic.js' %}"></script>
+
+</head>
+<body style="background-image: linear-gradient(322deg, rgba(255,89,24,1) 4%, rgba(255,226,0,0.8662815467984069) 97%);">
+
+<div class="loginform">
+
+
+    <img src="{% static 'assets/LoginBackground.png' %}" class="loginBack">
+    <div class="logo"><img src="{% static 'assets/logo.png' %}" width="175.5" height="45" style="margin:30px;"></div>
+    <h1>Log in to your account</h1>
+    {% if error == True %}
+        <div class="loginerror">
+
+
+            <h2>Please enter the correct credentials</h2>
+        </div>
+
+    {% endif %}
+    <form style="max-width:450px;margin:auto;position:relative;top:15%;right:23%;" method="post">
+            {% csrf_token %}
+
+            <div class="input-icons">
+                <i class="fa fa-user icon" style="font-size:40px;">
+              </i>
+                {{form.username}}
+            </div>
+
+            <div class="input-icons">
+                <i class="fa fa-envelope icon" style="font-size:40px;">
+              </i>
+                {{form.email}}
+            </div>
+
+            <div class="input-icons">
+                <i class="fa fa-key icon" style="font-size:40px;">
+              </i>
+                {{form.password}}
+            </div>
+            <input type="submit" value="LOG IN" class="submitbutton">
+        </form>
+
+</div>
+</body>
+
+</html>

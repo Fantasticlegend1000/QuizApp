@@ -1,0 +1,23 @@
+{% extends "quiz/base.html" %}
+{% block body %}
+
+<div>
+
+{% for q in Questions%}
+    <div class="flip-card" style="float:left;margin-left:40px;">
+  <div class="flip-card-inner">
+    <div class="flip-card-front">
+		<h1>{{q.question_text}}</h1>
+    </div>
+    <div class="flip-card-back">
+      <h1>{{q.answer_text}}</h1>
+        <p>{{q.explanation_text}}</p>
+
+    </div>
+    </div>
+    </div>
+{% endfor %}
+
+
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "quiz/base.html" %}
+{% load static %}
+<script src="{% static 'assets/logic.js' %}"></script>
+{% block cat %}
+
+
+<h3 style="margin: auto;margin-top:70px;margin-bottom:50px;width:580px;font-size:50px;font-weight:800;background: -webkit-linear-gradient(318deg, rgba(251,91,18,1) 4%, rgba(157,0,255,0.8) 97%);
+  -webkit-background-clip: text;
+
+  -webkit-text-fill-color: transparent;">Choose your event</h3>
+<div style="width:1800px;height:1200px;border: solid 1px grey; border-radius:20px;margin: auto;box-shadow: 0px 3px 18px 3px rgba(0, 0, 0, 0.7);">
+<a href="archive/All" ><div class="maincat" id="All">
+
+    <h3>ALL</h3></div></a>
+{% for event in events %}
+
+    <a href="{{event}}" ><div class="maincat" id="{{event}}" onclick="linkgobrr(this)">
+
+
+        <h3>{{event.upper}}</h3>
+
+
+
+
+
+    </div></a>
+
+
+{%endfor%}
+
+
+
+
+
+
+
+
+
+</div>
+{% endblock %}

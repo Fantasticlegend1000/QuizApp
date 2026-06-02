@@ -1,0 +1,65 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="{% static 'assets/main.css' %}">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+<script src="{% static 'assets/logic.js' %}"></script>
+
+</head>
+<body>
+<div>
+
+<div class="wrapper">
+        <nav style="z-index:3;">
+          <div class="logo"><img src="{% static 'assets/logo.png' %}" width="175.5" height="45"></div>
+          <ul id="navbar">
+            <li><a href="http://localhost:8000/quiz/" class="selected navelement firstelement" style=" font-family: 'Montserrat';">Home</a></li>
+            <li><a href="http://localhost:8000/quiz/about/" class="navelement" style=" font-family: 'Montserrat';">About</a></li>
+
+              <li><a href="http://localhost:8000/quiz/archive/" class="lastelement navelement" style=" font-family: 'Montserrat';">Archive</a></li>
+            <li>
+              <form action="/quiz/logout/" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="active navelement" style="font-family: 'Montserrat'; background:none; border:none; cursor:pointer; color:inherit; font-size:inherit; padding:0;">Logout</button>
+              </form>
+            </li>
+
+              <img src="{% static 'assets/DefaultAvatar.png' %}" style="width:60px;height:60px;border-radius:50%;margin-left:60px;border:6px solid #FF8052;z-index:1;">
+            <li><a style = "margin-left:-10px;background-color:#fff;border:none;"href="#">{{userboi}}</a></li>
+
+
+
+          </ul>
+         </nav>
+</div>
+
+
+
+    </div>
+{%block cat%}
+{%endblock%}
+ {%block catw%}
+{%endblock%}
+</div>
+
+
+</div>
+
+
+            {% block body %}
+            {% endblock %}
+
+
+
+</div>
+</body>
+
+</html>
