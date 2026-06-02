@@ -1,125 +1,132 @@
-# Deploying QuizApp to Render (with managed PostgreSQL)
+# Deploying QuizApp
 
-This guide deploys the app to [Render](https://render.com) using a managed
-PostgreSQL database and loads your existing quiz data into it.
+**Host:** Render (web service) · **Database:** Supabase PostgreSQL · **Media:** Cloudflare R2
 
-The repo already contains everything needed:
+Everything needed is already in the repo:
 
-- `render.yaml` — the Blueprint (web service + Postgres + env vars)
-- `requirements.txt` — includes `gunicorn`, `psycopg2-binary`, `dj-database-url`, `whitenoise`
-- `quiz_app/quiz_app/settings.py` — reads `DATABASE_URL`, `DJANGO_SECRET_KEY`,
-  `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS` from the environment
+- `render.yaml` — the Blueprint (web service + env vars; secrets via `sync: false`)
+- `requirements.txt` — `gunicorn`, `dj-database-url`, `psycopg2-binary`, `whitenoise`, `django-storages`, `boto3`
+- `quiz_app/quiz_app/settings.py` — reads `DATABASE_URL` and the `AWS_*` R2 vars from the environment; falls back to SQLite + local media when they're absent (so local dev is unchanged)
 
----
-
-## 1. Create the stack from the Blueprint
-
-1. Push the latest code to GitHub (already done if you're reading this in the repo).
-2. In the Render dashboard: **New +  →  Blueprint**.
-3. Select the **`Fantasticlegend1000/QuizApp`** repo and approve.
-4. Render reads `render.yaml`, then creates:
-   - a PostgreSQL database `quizapp-db`
-   - a web service `quizapp`
-   - a generated `DJANGO_SECRET_KEY`, and `DATABASE_URL` wired from the DB.
-5. Click **Apply**. The first deploy runs the build command, which installs
-   dependencies, runs `collectstatic`, and applies all migrations (creating the
-   empty tables in Postgres).
-
-When it finishes, the site is live at `https://quizapp-XXXX.onrender.com`
-(empty — no questions/users yet; that's the next step).
-
-> Note: on Render's **free** tier the web service sleeps after ~15 min idle
-> (first request after that takes ~30s to wake), and free Postgres has storage
-> limits and an expiry date. Upgrade either to a paid plan for production.
+Do the two prerequisites first (Supabase + R2) so their values exist when you
+create the Render stack — the first deploy runs `migrate` against the database.
 
 ---
 
-## 2. Load your existing data into the Render database
+## 1. Supabase database
 
-Your existing data (2 users, 211 written questions, MCQs, flashcards, connect,
-audiovisual, facts, archive) was exported to **`render_data.json`**. This file
-is **not** in the repo because it contains user password hashes — keep it
-private. (If you don't have it, regenerate it from the local SQLite DB — see
-section 4.)
+1. Create a project at <https://supabase.com> and set a database password.
+2. **Project Settings → Database → Connection string → "Session pooler"** and
+   copy the URI. It looks like:
 
-Load it straight into the Render Postgres from your own machine:
-
-1. In the Render dashboard open the **quizapp-db** database and copy its
-   **External Database URL** (starts with `postgres://...`).
-2. From the project root on your machine:
-
-   ```bash
-   # one-time: install the deps locally so manage.py can talk to Postgres
-   pip install -r requirements.txt
-
-   # point Django at the Render database (use the EXTERNAL url)
-   #   Windows PowerShell:  $env:DATABASE_URL = "postgres://...."
-   #   macOS/Linux:         export DATABASE_URL="postgres://...."
-   export DATABASE_URL="postgres://USER:PASSWORD@HOST/DB"
-   export DJANGO_SECRET_KEY="anything-nonempty"
-   export DJANGO_DEBUG="False"
-
-   cd quiz_app
-   python manage.py migrate          # safe to re-run; tables already exist
-   python manage.py loaddata ../render_data.json
+   ```
+   postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
    ```
 
-   `loaddata` restores the rows, including the two users with their original
-   passwords, so existing logins keep working.
+   Use the **Session pooler** string (IPv4 + SSL) — Render's outbound is IPv4 and
+   the direct `db.<ref>.supabase.co` host is often IPv6-only. The app already
+   forces SSL (`sslmode=require`) when `DEBUG=False`.
 
-3. Reload the site — your questions and accounts are now there.
+   That URI is your **`DATABASE_URL`**.
+
+> Free Supabase pauses after ~7 days of inactivity (one click to resume); it
+> does **not** delete your data on a timer. Limits ~500 MB DB — plenty here.
 
 ---
 
-## 3. Media files (images / audio / video) — via Cloudinary
+## 2. Cloudflare R2 bucket (media)
 
-Postgres stores your **data**, but the uploaded **media** (Connect images,
-AudioVisual clips, Archive files) are real files. Render's web filesystem is
-ephemeral, so media is served from **Cloudinary** instead (free tier is plenty
-for this app). This is already wired into the code:
+1. In the Cloudflare dashboard open **R2** and **Create bucket** (e.g. `quizapp-media`).
+2. **R2 → Manage API Tokens → Create API token** with *Object Read & Write* on
+   that bucket. Copy the **Access Key ID** and **Secret Access Key**.
+3. Note your S3 endpoint (shown in R2): `https://<account_id>.r2.cloudflarestorage.com`
+4. Make objects publicly viewable: bucket → **Settings → Public access** →
+   enable the **r2.dev** public URL (gives `pub-xxxx.r2.dev`) or attach a custom
+   domain. That hostname (no `https://`) is your **`AWS_S3_CUSTOM_DOMAIN`**.
 
-- `cloudinary` + `django-cloudinary-storage` are in `requirements.txt`.
-- When the `CLOUDINARY_URL` env var is present, `settings.py` routes media to
-  Cloudinary (images) and `models.py` routes video/audio to Cloudinary's video
-  storage. With no `CLOUDINARY_URL` (local dev) media stays on the filesystem.
-- `render.yaml` declares `CLOUDINARY_URL` as a secret (`sync: false`).
+Values you now have:
 
-### 3a. Create a Cloudinary account and set the credential
+| Env var | Value |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | R2 token Access Key ID |
+| `AWS_SECRET_ACCESS_KEY` | R2 token Secret Access Key |
+| `AWS_STORAGE_BUCKET_NAME` | `quizapp-media` |
+| `AWS_S3_ENDPOINT_URL` | `https://<account_id>.r2.cloudflarestorage.com` |
+| `AWS_S3_CUSTOM_DOMAIN` | `pub-xxxx.r2.dev` (or your custom domain) |
 
-1. Sign up at <https://cloudinary.com> (free).
-2. On the dashboard copy the **API Environment variable** — it looks like
-   `cloudinary://<api_key>:<api_secret>@<cloud_name>`.
-3. In Render, open the **quizapp** web service → **Environment** → set
-   `CLOUDINARY_URL` to that value (Render asked for it when you applied the
-   Blueprint; set/confirm it here). Save — the service redeploys.
+> Free R2: 10 GB storage and **no egress fees**.
 
-### 3b. Upload your existing media to Cloudinary
+---
 
-A management command copies the existing `media/` files up and rewrites the DB
-references. Run it from your machine (which still has the `media/` folder),
-pointed at the **same** Render database and Cloudinary account you configured
-above:
+## 3. Create the Render stack
+
+1. Push the latest code to GitHub (done if you're reading this in the repo).
+2. Render dashboard: **New + → Blueprint → pick `Fantasticlegend1000/QuizApp`**.
+3. Render reads `render.yaml` and prompts for the `sync: false` secrets — paste
+   the `DATABASE_URL` from step 1 and the five R2 values from step 2.
+4. **Apply.** The first deploy installs deps, runs `collectstatic`, and runs
+   `migrate` against Supabase (creating the empty tables).
+
+Live at `https://quizapp-XXXX.onrender.com` (empty until you load data next).
+
+> Free Render web services sleep after ~15 min idle (~30 s cold start). Upgrade
+> to keep it warm.
+
+---
+
+## 4. Load your existing data into Supabase
+
+Your existing data was exported to **`render_data.json`** (2 users, 211 written
+questions, MCQs, flashcards, connect, audiovisual, facts, archive). It is **not**
+committed (it contains password hashes) — keep it private. Load it from your
+machine straight into Supabase:
 
 ```bash
 pip install -r requirements.txt
 
-export DATABASE_URL="postgres://...(Render EXTERNAL url)..."
-export CLOUDINARY_URL="cloudinary://<api_key>:<api_secret>@<cloud_name>"
+#   macOS/Linux:
+export DATABASE_URL="postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres"
+export DJANGO_SECRET_KEY="anything-nonempty"
+export DJANGO_DEBUG="False"
+#   Windows PowerShell:  $env:DATABASE_URL = "postgresql://..."  etc.
+
+cd quiz_app
+python manage.py migrate          # safe to re-run; tables already exist
+python manage.py loaddata ../render_data.json
+```
+
+`loaddata` restores the two users with their original passwords, so existing
+logins keep working.
+
+---
+
+## 5. Upload your existing media to R2
+
+A management command copies the local `media/` files to R2 and rewrites the DB
+references. Run it from your machine (which still has `media/`), pointed at the
+**same** Supabase DB and R2 bucket:
+
+```bash
+export DATABASE_URL="postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres"
+export AWS_ACCESS_KEY_ID="...r2 access key..."
+export AWS_SECRET_ACCESS_KEY="...r2 secret..."
+export AWS_STORAGE_BUCKET_NAME="quizapp-media"
+export AWS_S3_ENDPOINT_URL="https://<account_id>.r2.cloudflarestorage.com"
+export AWS_S3_CUSTOM_DOMAIN="pub-xxxx.r2.dev"
 export DJANGO_SECRET_KEY="anything-nonempty"
 export DJANGO_DEBUG="False"
 
 cd quiz_app
-python manage.py migrate_media_to_cloudinary --dry-run   # preview
-python manage.py migrate_media_to_cloudinary             # upload + fix references
+python manage.py migrate_media_to_storage --dry-run   # preview (19 files)
+python manage.py migrate_media_to_storage             # upload + fix references
 ```
 
-Run this **after** loading the data in step 2 (the command updates rows that
-loaddata created). New uploads through the Django admin then go to Cloudinary
-automatically.
+Run this **after** step 4 (it updates the rows that `loaddata` created). New
+uploads through the Django admin then go to R2 automatically.
 
 ---
 
-## 4. Regenerating the data fixture (if needed)
+## 6. Regenerating the data fixture (if needed)
 
 From the project root, against your local SQLite DB:
 
@@ -136,6 +143,5 @@ open('../render_data.json','w',encoding='utf-8').write(serializers.serialize('js
 "
 ```
 
-(The plain `manage.py dumpdata` command crashes on the local Python 3.9 / Django
-3.2 / SQLite combo with a streaming-cursor bug, hence the materialized-list
-approach above.)
+(Plain `manage.py dumpdata` crashes on the local Python 3.9 / Django 3.2 / SQLite
+combo with a streaming-cursor bug, hence the materialized-list approach.)

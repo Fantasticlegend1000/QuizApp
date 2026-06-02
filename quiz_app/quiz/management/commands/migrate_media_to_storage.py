@@ -1,25 +1,29 @@
 """One-time migration of existing local media files to the configured storage.
 
-After switching media storage to Cloudinary (by setting CLOUDINARY_URL), the
-database still references files by name but the files themselves only exist in
-the local ``media/`` folder. This command reads each referenced file from a
-local media root, uploads it through the field's storage backend (Cloudinary
-when CLOUDINARY_URL is set), and rewrites the database reference to the stored
-name so the URLs resolve.
+After switching media storage to a remote backend (Cloudflare R2 / any
+S3-compatible store), the database still references files by name but the files
+themselves only exist in the local ``media/`` folder. This command reads each
+referenced file from a local media root, uploads it through the field's storage
+backend (R2 when the AWS_* env vars are set), and rewrites the database
+reference to the stored name so the URLs resolve.
 
 Typical use — run from a machine that still has the local ``media/`` folder,
-pointed at the target database and Cloudinary account:
+pointed at the target database and bucket:
 
     # macOS/Linux
-    export DATABASE_URL="postgres://...(Render EXTERNAL url)..."
-    export CLOUDINARY_URL="cloudinary://<api_key>:<api_secret>@<cloud_name>"
+    export DATABASE_URL="postgres://...(Supabase session pooler url)..."
+    export AWS_ACCESS_KEY_ID="...r2 access key..."
+    export AWS_SECRET_ACCESS_KEY="...r2 secret..."
+    export AWS_STORAGE_BUCKET_NAME="quizapp-media"
+    export AWS_S3_ENDPOINT_URL="https://<account>.r2.cloudflarestorage.com"
+    export AWS_S3_CUSTOM_DOMAIN="pub-xxxx.r2.dev"   # or your custom domain
     export DJANGO_SECRET_KEY="anything-nonempty"
     export DJANGO_DEBUG="False"
     cd quiz_app
-    python manage.py migrate_media_to_cloudinary
+    python manage.py migrate_media_to_storage --dry-run   # preview
+    python manage.py migrate_media_to_storage             # upload + fix refs
 
-Use --dry-run first to preview, and --media-root to point at a media folder
-other than settings.MEDIA_ROOT.
+Use --media-root to read from a media folder other than settings.MEDIA_ROOT.
 """
 
 import os
@@ -39,7 +43,7 @@ MEDIA_FIELDS = [
 
 
 class Command(BaseCommand):
-    help = "Upload existing local media to the configured storage (Cloudinary) and fix DB references."
+    help = "Upload existing local media to the configured storage (Cloudflare R2) and fix DB references."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -57,11 +61,11 @@ class Command(BaseCommand):
         media_root = options['media_root']
         dry_run = options['dry_run']
 
-        if not dry_run and not os.environ.get('CLOUDINARY_URL'):
+        if not dry_run and not getattr(settings, 'USE_S3_MEDIA', False):
             self.stderr.write(self.style.WARNING(
-                'CLOUDINARY_URL is not set — files would be saved with the local '
-                'filesystem storage, not Cloudinary. Set CLOUDINARY_URL first, or '
-                'use --dry-run.'
+                'Remote media storage is not configured (AWS_STORAGE_BUCKET_NAME / '
+                'AWS_S3_ENDPOINT_URL unset) — files would be saved with the local '
+                'filesystem storage. Set the R2 env vars first, or use --dry-run.'
             ))
 
         uploaded = 0
