@@ -898,6 +898,163 @@ background: linear-gradient(to right, #F37335, #FDC830); /* W3C, IE 10+/ Edge, F
       0 0 151px #ffd52e;
 }
 
+/* =============================================================
+   DESIGN REFRESH
+   Derived from the Stitch "Quizite Original Style" design system.
+   Modernises the shared chrome (nav, buttons, cards, inputs,
+   shadows, type) for BOTH desktop and mobile while preserving the
+   original orange->yellow identity and Montserrat. Purely visual —
+   element ids / data-attrs / onclick hooks are untouched.
+   ============================================================= */
+:root{
+  --q-orange:#ff5918;
+  --q-orange-deep:#a73200;
+  --q-yellow:#ffe200;
+  --q-gold:#ffce00;
+  --q-blue:#0d34ff;
+  --q-green:#6ad93b;
+  --q-red:#d9503b;
+  --q-ink:#1f1e1e;
+  --q-muted:#5c5b5b;
+  --q-surface:#fbf7f4;
+  --q-card:#ffffff;
+  --q-line:#ffdcc8;
+  --q-grad:linear-gradient(322deg,#ff5918 4%,#ffe200 97%);
+  --q-grad-rev:linear-gradient(135deg,#ff7a18,#ffd200);
+  --q-r:16px;
+  --q-r-md:22px;
+  --q-r-lg:30px;
+  --q-pill:999px;
+  --q-shadow:0 6px 22px rgba(40,18,0,.12);
+  --q-shadow-lg:0 16px 40px rgba(40,18,0,.22);
+  --q-ease:.25s cubic-bezier(.2,.7,.2,1);
+}
+
+/* Warm, soft page background on the standard (non-login) pages */
+body{ background:var(--q-surface); }
+
+/* Never allow horizontal scroll: cap the legacy fixed-width containers so
+   they fit any viewport (they keep their size only on very large screens). */
+html, body{ overflow-x:hidden; max-width:100%; }
+[style*="width:2000px"],[style*="width:1800px"],[style*="width:1700px"],
+[style*="width:1650px"],[style*="width:1500px"],[style*="width:1400px"],
+[style*="width:1250px"],[style*="width:1220px"],[style*="width:1200px"],
+[style*="width:1000px"]{ max-width:100% !important; }
+
+/* Soften every harsh inline drop-shadow into the new token shadow */
+[style*="box-shadow: 0px 3px 18px"],
+[style*="box-shadow:0px 3px 18px"]{ box-shadow:var(--q-shadow) !important; }
+
+/* ---------- Navigation ---------- */
+nav{
+  box-shadow:0 4px 20px rgba(0,0,0,.06);
+  border-bottom:2px solid var(--q-line);
+}
+nav ul li a, .lastelement, nav ul li button.navelement{
+  border-left:none !important;
+  border-right:none !important;
+  border-radius:var(--q-pill);
+  transition:var(--q-ease);
+}
+nav ul li a:not(.selected):hover,
+nav ul li button.navelement:hover{
+  background:#fff1e8;
+  color:var(--q-orange) !important;
+}
+.selected{
+  background:var(--q-grad) !important;
+  color:#fff !important;
+  box-shadow:0 6px 16px rgba(255,89,24,.35);
+}
+
+/* ---------- Primary (login) button ---------- */
+.submitbutton,
+.submitbutton:hover,
+.submitbutton:focus{
+  background:var(--q-grad);
+  border:none;
+  border-radius:var(--q-pill);
+  box-shadow:0 12px 26px rgba(255,89,24,.35);
+  letter-spacing:.04em;
+  transition:var(--q-ease);
+}
+.submitbutton:hover{ transform:translateY(-3px); box-shadow:0 18px 34px rgba(255,89,24,.45); }
+.submitbutton:active{ transform:translateY(0); }
+
+/* ---------- Home quiz-mode tiles & category tiles ---------- */
+.mode, .maincat{
+  border:2px solid var(--q-line);
+  background:var(--q-card);
+  box-shadow:var(--q-shadow);
+  transition:var(--q-ease);
+}
+.mode:hover, .maincat:hover{
+  background:var(--q-grad) !important;
+  transform:translateY(-5px);
+  box-shadow:var(--q-shadow-lg);
+}
+.mode:hover h3, .maincat:hover h3{ color:#fff !important; opacity:1; }
+
+/* ---------- Category panel "tiles" (.categories) ---------- */
+.categories{
+  box-shadow:var(--q-shadow) !important;
+  transition:var(--q-ease);
+}
+.categories:hover{ transform:translateY(-5px); box-shadow:var(--q-shadow-lg) !important; }
+
+/* ---------- Flashcards ---------- */
+.flip-card-front, .flip-card-back{ box-shadow:var(--q-shadow); }
+
+/* ---------- Answer / explanation card ---------- */
+.card{ border-radius:var(--q-r-md) !important; box-shadow:var(--q-shadow-lg) !important; }
+
+/* ---------- Prev / next round buttons ---------- */
+.next, .previous{ box-shadow:var(--q-shadow); transition:var(--q-ease); }
+.next:hover, .previous:hover{ transform:scale(1.06); }
+
+/* ---------- Hint button ---------- */
+.myButtonddd{ border-radius:var(--q-r) !important; box-shadow:var(--q-shadow) !important; transition:var(--q-ease); }
+.myButtonddd:active{ transform:translateY(3px); }
+
+/* ---------- Text inputs / answer areas ---------- */
+.input-field{
+  border:2px solid var(--q-line) !important;
+  border-radius:var(--q-r) !important;
+  transition:var(--q-ease);
+}
+.input-field:focus{
+  border-color:var(--q-orange) !important;
+  box-shadow:0 0 0 4px rgba(255,89,24,.15) !important;
+  outline:none;
+}
+textarea, .TextInput{
+  border-radius:var(--q-r-md) !important;
+  transition:var(--q-ease);
+}
+textarea:focus, .TextInput:focus{
+  outline:none;
+  box-shadow:0 0 0 4px rgba(255,89,24,.18) !important;
+}
+
+/* ---------- Login card (centered, responsive at all widths) ---------- */
+.loginform{
+  width:92% !important; max-width:460px !important; height:auto !important;
+  position:relative !important; left:auto !important; top:auto !important;
+  transform:none !important; margin:90px auto 40px !important;
+  border-radius:30px; box-shadow:0 30px 70px rgba(40,18,0,.28); padding-bottom:34px;
+}
+.loginBack{ display:none !important; }
+.loginform h1{ font-size:34px !important; margin-top:10px !important; }
+.loginerror{ width:auto !important; left:0 !important; right:0 !important; margin:12px 20px !important; }
+.loginform form{
+  position:relative !important; right:auto !important; top:auto !important;
+  margin:0 auto !important; max-width:360px !important;
+}
+.input-icons{ margin-bottom:22px !important; padding:0 18px; }
+.input-field{ width:100% !important; height:56px !important; font-size:18px !important; }
+.submitbutton, .submitbutton:hover, .submitbutton:focus{ width:100% !important; height:64px !important; left:0 !important; font-size:22px !important; }
+
+
 /* ============================================================
    RESPONSIVE / MOBILE-FRIENDLY LAYER
    This app was originally built with fixed pixel widths (up to
