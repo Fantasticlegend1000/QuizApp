@@ -19,8 +19,12 @@ from django.conf import settings # new
 from django.urls import path, include # new
 from django.conf.urls.static import static # new
 from django.contrib.auth import views as auth_views
+from django.views.generic.base import RedirectView
 
 urlpatterns = [
+    # Send the bare domain to the app entry point (the app has no page at '/').
+    path('', RedirectView.as_view(url='/quiz/', permanent=False)),
+
     path('admin/', admin.site.urls),
 
     path('quiz/', include('quiz.urls')),

@@ -61,3 +61,6 @@ Thumbs.db
 render_data.json
 data.json
 dumperr.txt
+
+# Local migration secrets (never commit)
+migrate.env
