@@ -51,6 +51,56 @@ function soundex(s){
     return (r + '000').slice(0, 4).toUpperCase();
 };
 
+// --- Lenient answer matching (deterministic, no LLM) ---
+// Normalizes case/punctuation/whitespace, then accepts the answer if it is
+// close enough to the expected one by edit distance, or if every significant
+// word of the expected answer appears (fuzzily) in the user's answer. This
+// makes typos, capitalisation, punctuation, extra spaces and word order pass.
+function _normAns(s){
+    return (s||"").toLowerCase()
+        .replace(/[^a-z0-9\s]/g," ")
+        .replace(/\s+/g," ")
+        .trim();
+}
+function _lev(a,b){
+    var m=a.length,n=b.length,i,j;
+    if(!m) return n; if(!n) return m;
+    var prev=[],cur=[];
+    for(j=0;j<=n;j++) prev[j]=j;
+    for(i=1;i<=m;i++){
+        cur[0]=i;
+        for(j=1;j<=n;j++){
+            var cost=a.charAt(i-1)===b.charAt(j-1)?0:1;
+            cur[j]=Math.min(cur[j-1]+1, prev[j]+1, prev[j-1]+cost);
+        }
+        var t=prev; prev=cur; cur=t;
+    }
+    return prev[n];
+}
+function _sim(a,b){ var ml=Math.max(a.length,b.length); return ml===0?1:(1-_lev(a,b)/ml); }
+function looseMatch(userRaw, correctRaw){
+    var u=_normAns(userRaw), c=_normAns(correctRaw);
+    if(!u || !c) return false;
+    if(u===c) return true;
+    // whole-string edit-distance tolerance (looser for longer answers)
+    var ml=Math.max(u.length,c.length);
+    var threshold = ml<=4 ? 0.75 : (ml<=8 ? 0.80 : 0.82);
+    if(_sim(u,c) >= threshold) return true;
+    // order-independent: same words in any order (handles reordering)
+    if(_sim(u.split(" ").sort().join(" "), c.split(" ").sort().join(" ")) >= threshold) return true;
+    // token match: every meaningful word of the expected answer appears (fuzzily)
+    var stop={a:1,an:1,the:1,of:1,is:1,are:1,and:1,to:1,in:1,on:1,by:1,for:1,with:1};
+    var cw=c.split(" ").filter(function(w){ return w && !stop[w]; });
+    var uw=u.split(" ").filter(Boolean);
+    if(cw.length){
+        var all=cw.every(function(x){
+            return uw.some(function(y){ return y===x || _sim(y,x)>=0.8; });
+        });
+        if(all) return true;
+    }
+    return false;
+}
+
 var Question = document.querySelector('[id$="active"]');
 function initBarCount(){
     var start = Date.now()
@@ -193,7 +243,7 @@ event.target.value = "";
                     }}
                     if(orCommands[i].charAt(1) !== "#" && orCommands[i].charAt(1) !== "?"){// If commands starts with # that means it accepts spelling mistakes
                      console.log(orCommands[i])
-                        if(answer.toLowerCase() === orCommands[i].replace("/", "").toLowerCase()){//Checks if whether the answer starts with "/", if it does then it checks if the answer(lowercase) mathes with the correct answer
+                        if(looseMatch(answer, orCommands[i].replace("/", ""))){//Checks if whether the answer starts with "/", if it does then it checks if the answer(lowercase) mathes with the correct answer
                             console.log("ANSWER       " + (answer.toLowerCase()));
                             console.log("CORRECT ANS   " + (orCommands[i].replace("/", "").toLowerCase()))
                         orResults.push(1);
